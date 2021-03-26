@@ -38,6 +38,7 @@ def signup(req):
         dob = payload['DOB']
         phone_number = payload['phoneNumber']
         my_token = jwt.encode({'pwd': pwd}, 'kilofarm')
+        print(name)
         if len(User.objects.filter(name=name)) > 0:
             res = json.dumps([{'Error': 'user name already exists'}])
         else:

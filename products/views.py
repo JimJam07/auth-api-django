@@ -1,9 +1,10 @@
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.authentication import BaseAuthentication
-from rest_framework.decorators import authentication_classes,permission_classes,api_view
-from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import authenticate
+import re
 
+# authentication is done using django auth pls add you username and passwor din admin/route Users before continuing
+# add user requests to your body of the request
 from products.models import Products
 import json
 import ast
@@ -16,10 +17,14 @@ def index(req):
 
 
 @csrf_exempt
-@authentication_classes([BaseAuthentication])
-@permission_classes([IsAuthenticated])
 def get_product(req):
-    if req.method == 'GET':
+    body_unicode = req.body.decode('utf-8')
+    payload = ast.literal_eval(body_unicode)[0]
+    print(payload)
+    user = payload['username']
+    password = payload['password']
+    usr = authenticate(username=user, password=password)
+    if req.method == 'GET' and usr!=None:
         id = req.GET.get('id')
         try:
             pro = list(Products.objects.filter(id=id).values())[0]
@@ -29,7 +34,7 @@ def get_product(req):
             res = json.dumps([{'message': 'product does not exist'}])
         return HttpResponse(res, content_type='text/json')
 
-    if req.method == 'PUT':
+    elif req.method == 'PUT' and usr != None:
         id = req.GET.get('id')
         prod = list(Products.objects.filter(id=id).values())[0]
         dct = {"sku_name": prod["sku_name"], "sku_category": prod["sku_category"], "price": prod["price"]}
@@ -45,7 +50,7 @@ def get_product(req):
             res = json.dumps(([{'message': 'unable to update product!'}]))
         return HttpResponse(res, content_type='text/json')
 
-    if req.method == 'DELETE':
+    elif req.method == 'DELETE' and usr != None:
         id = req.GET.get('id')
         try:
             Products.objects.filter(id=id).delete()
@@ -53,11 +58,19 @@ def get_product(req):
         except:
             res = json.dumps(([{'message': 'unable to delete product!'}]))
         return HttpResponse(res, content_type='text/json')
+    else:
+        res = json.dumps([{'Auth Error': 'Unauthenticated User!!!'}])
+        return HttpResponse(res, content_type='text/json')
 
 
 @csrf_exempt
 def create(req):
-    if req.method == 'POST':
+    body_unicode = req.body.decode('utf-8')
+    payload = ast.literal_eval(body_unicode)[0]
+    user = payload['username']
+    password = payload['password']
+    usr = authenticate(username=user, password=password)
+    if req.method == 'POST' and usr!=None:
         body_unicode = req.body.decode('utf-8')
         payload = ast.literal_eval(body_unicode)[0]
         id = payload['id']
